@@ -1,0 +1,72 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Users Lambda — CRUD controller for user profiles in DynamoDB
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 256
+    Runtime: python3.14
+
+Resources:
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: unstamped-pages-prod
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+
+  UsersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda_function.lambda_handler
+      CodeUri: .
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref UsersTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        CreateUser:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: POST
+        ReadUser:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: GET
+        UpdateUserPut:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: PUT
+        UpdateUserPatch:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: PATCH
+        DeleteUser:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: DELETE
+
+Outputs:
+  UsersApi:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/users"
+  UsersFunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt UsersFunction.Arn

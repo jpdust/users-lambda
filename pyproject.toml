@@ -1,0 +1,33 @@
+[project]
+name = "users-lambda"
+version = "1.0.0"
+description = "AWS Lambda CRUD controller for user profiles in DynamoDB"
+requires-python = ">=3.14"
+dependencies = [
+    "boto3>=1.35.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=6.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--cov=. --cov-report=term-missing --cov-report=xml -v"
+
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*", ".venv/*"]
+relative_files = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 95

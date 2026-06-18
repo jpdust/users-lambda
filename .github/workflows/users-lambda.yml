@@ -1,0 +1,64 @@
+name: CI/CD
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+  workflow_dispatch:
+
+jobs:
+  # ============================================================================
+  # Job 1 — Test & Analyze
+  # Runs on every push and every pull request to master.
+  # ============================================================================
+  test:
+    name: Test & Analyze
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Checkout ─────────────────────────────────────────────────────────────
+      # fetch-depth: 0 gives SonarCloud the full history it needs for
+      # blame data and PR decoration; a shallow clone produces empty blame.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── Python & uv ──────────────────────────────────────────────────────────
+      - name: Set up uv
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: "3.14"
+
+      # ── Dependencies ─────────────────────────────────────────────────────────
+      # --frozen installs exactly what is in uv.lock with no re-resolution.
+      # --no-build prevents execution of setup.py / build scripts by requiring
+      # pre-built wheels for every package.
+      - name: Install dependencies
+        run: uv sync --extra dev --frozen --no-build
+
+      # ── Tests & Coverage ─────────────────────────────────────────────────────
+      # pytest-cov writes coverage.xml (configured in pyproject.toml).
+      # The XML report is consumed by the SonarCloud step below.
+      - name: Run tests
+        run: .venv/bin/pytest
+
+      - name: Upload coverage report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 7
+
+      # ── SonarCloud Analysis ──────────────────────────────────────────────────
+      # Uses the official SonarSource GitHub Action instead of the sonar-scanner
+      # CLI directly. Configuration is read from sonar-project.properties at the
+      # repo root. sonar.qualitygate.wait=true is set there, so the step blocks
+      # until SonarCloud returns a gate result and fails if the gate is red.
+      - name: SonarCloud analysis
+        uses: SonarSource/sonarcloud-github-action@383f7e52eae3ab0510c3cb0e7d9d150bbaeab838 # v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
