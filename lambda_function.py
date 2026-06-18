@@ -4,10 +4,11 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
 TABLE_NAME = os.environ.get("TABLE_NAME", "unstamped-pages-prod")
-dynamodb = boto3.resource("dynamodb")
+dynamodb = boto3.resource("dynamodb", config=Config(connect_timeout=5, read_timeout=10))
 table = dynamodb.Table(TABLE_NAME)
 
 SENSITIVE_FIELDS = {"password"}

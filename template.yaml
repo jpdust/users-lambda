@@ -25,6 +25,12 @@ Resources:
         - AttributeName: SK
           KeyType: RANGE
 
+  UsersFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${UsersFunction}"
+      RetentionInDays: 14
+
   UsersFunction:
     Type: AWS::Serverless::Function
     Properties:

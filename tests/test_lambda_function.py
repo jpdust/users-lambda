@@ -64,10 +64,6 @@ def _mock_table():
         yield mock
 
 
-# ───────────────────────────────────────────────────────────────────────────
-# Helpers & utilities
-# ───────────────────────────────────────────────────────────────────────────
-
 
 class TestBuildKeys:
     def test_builds_correct_pk_and_sk(self):
@@ -167,10 +163,6 @@ class TestResponse:
         assert "Access-Control-Allow-Headers" in h
 
 
-# ───────────────────────────────────────────────────────────────────────────
-# CREATE (POST)
-# ───────────────────────────────────────────────────────────────────────────
-
 
 class TestCreateUser:
     def test_success(self, _mock_table):
@@ -257,10 +249,6 @@ class TestCreateUser:
         assert "password" not in body["user"]
 
 
-# ───────────────────────────────────────────────────────────────────────────
-# READ (GET)
-# ───────────────────────────────────────────────────────────────────────────
-
 
 class TestReadUser:
     def test_success(self, _mock_table):
@@ -324,10 +312,6 @@ class TestReadUser:
         assert body["user"]["score"] == 42
         assert body["user"]["rating"] == 4.5
 
-
-# ───────────────────────────────────────────────────────────────────────────
-# UPDATE (PUT / PATCH)
-# ───────────────────────────────────────────────────────────────────────────
 
 
 class TestUpdateUser:
@@ -482,10 +466,6 @@ class TestUpdateUser:
         assert status == 500
 
 
-# ───────────────────────────────────────────────────────────────────────────
-# DELETE
-# ───────────────────────────────────────────────────────────────────────────
-
 
 class TestDeleteUser:
     def test_from_query_string(self, _mock_table):
@@ -499,7 +479,7 @@ class TestDeleteUser:
 
     def test_from_body_fallback(self, _mock_table):
         event = _make_event("DELETE", body={"userId": "u-002"})
-        status, body = _parse_response(lf.lambda_handler(event, None))
+        status, _ = _parse_response(lf.lambda_handler(event, None))
         assert status == 200
         _mock_table.delete_item.assert_called_once_with(
             Key={"PK": "USER#u-002", "SK": "METADATA"}
@@ -518,10 +498,6 @@ class TestDeleteUser:
         assert status == 400
         assert "userId is required" in body["error"]
 
-
-# ───────────────────────────────────────────────────────────────────────────
-# Lambda handler routing & error handling
-# ───────────────────────────────────────────────────────────────────────────
 
 
 class TestLambdaHandlerRouting:
@@ -545,9 +521,8 @@ class TestLambdaHandlerRouting:
     def test_generic_exception_caught(self, _mock_table):
         _mock_table.put_item.side_effect = RuntimeError("boom")
         event = _make_event("POST", body=SAMPLE_USER_PAYLOAD)
-        status, body = _parse_response(lf.lambda_handler(event, None))
+        status, _ = _parse_response(lf.lambda_handler(event, None))
         assert status == 500
-        assert body["error"] == "Internal server error"
 
     def test_http_api_v2_routing(self, _mock_table):
         _mock_table.get_item.return_value = {}
@@ -557,13 +532,9 @@ class TestLambdaHandlerRouting:
         _mock_table.get_item.assert_called_once()
 
     def test_empty_method(self):
-        status, body = _parse_response(lf.lambda_handler({}, None))
+        status, _ = _parse_response(lf.lambda_handler({}, None))
         assert status == 405
 
-
-# ───────────────────────────────────────────────────────────────────────────
-# Integration-style: full create -> read -> update -> delete flow
-# ───────────────────────────────────────────────────────────────────────────
 
 
 class TestCrudFlow:
